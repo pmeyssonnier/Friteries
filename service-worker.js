@@ -1,4 +1,4 @@
-const CACHE_NAME = 'friteries-bruxelles-v5';
+const CACHE_NAME = 'friteries-bruxelles-v6';
 const APP_SHELL = [
   './',
   './index.html',

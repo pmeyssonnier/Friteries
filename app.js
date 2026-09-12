@@ -10,6 +10,14 @@ const DEFAULT_ZOOM = 12;
 const LABEL_MIN_ZOOM = 14;
 const LABEL_MAX_LABELS = 40;
 const UNNAMED = 'Friterie sans nom';
+const UNKNOWN_ADDRESS = 'Adresse non renseignée dans OpenStreetMap';
+
+/* Beaucoup de friteries ne portent aucun tag addr:* — l'adresse est souvent sur le
+ * bâtiment englobant, que la requête ne récupère pas. On la demande alors à Nominatim,
+ * mais seulement à l'ouverture d'une fiche : sa politique d'usage interdit le traitement
+ * en masse et impose au plus une requête par seconde. */
+const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/reverse';
+const NOMINATIM_MIN_INTERVAL_MS = 1100;
 
 /* « frit » couvre frite, frites, friture, friterie et frituur ; « friet » couvre
  * frietjes et frietkot. Les motifs sont appliqués sans tenir compte de la casse. */
@@ -149,7 +157,81 @@ function elementCoordinates(element) {
 function formatAddress(tags = {}) {
   const street = [tags['addr:housenumber'], tags['addr:street']].filter(Boolean).join(' ');
   const city = [tags['addr:postcode'], tags['addr:city']].filter(Boolean).join(' ');
-  return [street, city].filter(Boolean).join(', ') || tags['addr:full'] || 'Adresse non renseignée dans OpenStreetMap';
+  return [street, city].filter(Boolean).join(', ') || tags['addr:full'] || UNKNOWN_ADDRESS;
+}
+
+const approximateAddresses = new Map();
+let nominatimQueue = Promise.resolve();
+let lastNominatimCall = 0;
+
+/* Sérialise les appels et les espace, pour ne jamais dépasser une requête par seconde. */
+function waitForNominatimSlot() {
+  nominatimQueue = nominatimQueue.then(async () => {
+    const wait = NOMINATIM_MIN_INTERVAL_MS - (Date.now() - lastNominatimCall);
+    if (wait > 0) await new Promise(resolve => window.setTimeout(resolve, wait));
+    lastNominatimCall = Date.now();
+  });
+  return nominatimQueue;
+}
+
+function formatNominatimAddress(data) {
+  const a = (data && data.address) || {};
+  const street = [a.house_number, a.road || a.pedestrian || a.footway].filter(Boolean).join(' ');
+  const city = [a.postcode, a.city || a.town || a.village || a.municipality || a.suburb].filter(Boolean).join(' ');
+  return [street, city].filter(Boolean).join(', ') || (data && data.display_name) || '';
+}
+
+async function fetchApproximateAddress(place) {
+  await waitForNominatimSlot();
+  const url = `${NOMINATIM_URL}?format=jsonv2&addressdetails=1&zoom=18&accept-language=fr`
+    + `&lat=${encodeURIComponent(place.lat)}&lon=${encodeURIComponent(place.lon)}`;
+  const response = await fetch(url, { headers: { Accept: 'application/json' } });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return formatNominatimAddress(await response.json());
+}
+
+/* Une seule requête par friterie, partagée entre ouvertures successives.
+ * Un échec est oublié, pour qu'une nouvelle tentative reste possible. */
+function lookupApproximateAddress(place) {
+  if (!approximateAddresses.has(place.id)) {
+    approximateAddresses.set(place.id, fetchApproximateAddress(place).catch(error => {
+      approximateAddresses.delete(place.id);
+      throw error;
+    }));
+  }
+  return approximateAddresses.get(place.id);
+}
+
+function popupAddressNode(place) {
+  return document.querySelector(`.popup[data-place-id="${CSS.escape(place.id)}"] .popup-address`);
+}
+
+async function fillApproximateAddress(place) {
+  const pending = popupAddressNode(place);
+  if (pending) pending.textContent = 'Recherche de l’adresse…';
+  let address = '';
+  try {
+    address = await lookupApproximateAddress(place);
+  } catch (error) {
+    console.error(error);
+  }
+  // L'utilisateur a pu fermer la fiche ou en ouvrir une autre entre-temps.
+  const node = popupAddressNode(place);
+  if (!node) return;
+  if (!address) {
+    node.textContent = UNKNOWN_ADDRESS;
+    return;
+  }
+  node.textContent = address;
+  const tag = document.createElement('span');
+  tag.className = 'popup-approx';
+  tag.textContent = 'approximative';
+  node.appendChild(tag);
+}
+
+function showPlacePopup(place) {
+  detailPopup.setLatLng([place.lat, place.lon]).setContent(popupHtml(place)).openOn(map);
+  if (place.address === UNKNOWN_ADDRESS) fillApproximateAddress(place);
 }
 
 function normalizeElement(element) {
@@ -239,7 +321,7 @@ function detailRows(place) {
 
 function popupHtml(place) {
   const details = detailRows(place);
-  return `<div class="popup">
+  return `<div class="popup" data-place-id="${escapeHtml(place.id)}">
     <h3>🍟 ${escapeHtml(place.name)}</h3>
     <p class="popup-address">${escapeHtml(place.address)}</p>
     ${details || '<p class="popup-empty">Aucun autre détail renseigné dans OpenStreetMap.</p>'}
@@ -273,9 +355,7 @@ function renderMapMarkers() {
   for (const place of visiblePlaces) {
     const marker = L.marker([place.lat, place.lon], { icon: markerIcon(place), title: `${place.name} — voir la fiche` });
     marker.bindTooltip(place.name, { direction: 'top', offset: [0, -24] });
-    marker.on('click', () => {
-      detailPopup.setLatLng([place.lat, place.lon]).setContent(popupHtml(place)).openOn(map);
-    });
+    marker.on('click', () => showPlacePopup(place));
     marker.placeId = place.id;
     markerLayer.addLayer(marker);
   }
@@ -310,7 +390,7 @@ function renderResults() {
 
     const openPlace = () => {
       map.setView([place.lat, place.lon], Math.max(map.getZoom(), 16), { animate: true });
-      detailPopup.setLatLng([place.lat, place.lon]).setContent(popupHtml(place)).openOn(map);
+      showPlacePopup(place);
     };
     card.addEventListener('click', event => {
       if (event.target.closest('a')) return;

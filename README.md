@@ -18,6 +18,10 @@ PWA JavaScript qui affiche sur une carte les friteries renseignées dans OpenStr
   **Itinéraire** et **OSM**. Seules les informations réellement présentes dans
   OpenStreetMap sont affichées.
 - La liste latérale ouvre la même fiche.
+- Quand OSM ne porte aucun tag `addr:*`, la fiche demande l'adresse la plus proche à
+  **Nominatim** et l'affiche marquée « approximative ». Uniquement à l'ouverture d'une
+  fiche, mise en cache, et espacée d'au moins une seconde : la politique d'usage de
+  Nominatim interdit le traitement en masse.
 - Géolocalisation facultative de l'utilisateur.
 - PWA installable sur Android, Windows, macOS et certains navigateurs desktop.
 - Interface responsive téléphone / tablette / ordinateur.
