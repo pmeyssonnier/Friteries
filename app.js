@@ -348,6 +348,15 @@ function locateUser() {
 
 function registerPwa() {
   if ('serviceWorker' in navigator) {
+    // Sans ce rechargement, une version déjà installée continue de servir l'ancien
+    // app.js pendant toute la visite où la mise à jour s'installe.
+    const hadController = Boolean(navigator.serviceWorker.controller);
+    let reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController || reloading) return;
+      reloading = true;
+      window.location.reload();
+    });
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./service-worker.js').catch(console.error);
     });

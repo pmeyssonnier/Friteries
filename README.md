@@ -61,6 +61,13 @@ https://pmeyssonnier.github.io/Friteries/
 
 Sur Android/Chrome, utiliser **Installer l'application** ou **Ajouter à l'écran d'accueil**.
 
+### Mise à jour d'une application déjà installée
+
+Le service worker sert les fichiers depuis son cache. À chaque déploiement qui modifie
+`app.js` ou `styles.css`, **incrémenter `CACHE_NAME` dans `service-worker.js`** : sans cela
+le navigateur ne détecte aucune mise à jour et continue de servir l'ancienne version.
+L'application se recharge ensuite une fois d'elle-même pour appliquer la nouvelle version.
+
 Le fichier `.nojekyll` à la racine désactive le traitement Jekyll, afin que tous les
 fichiers statiques (dont le service worker et le manifeste) soient servis tels quels.
 

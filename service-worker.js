@@ -1,4 +1,4 @@
-const CACHE_NAME = 'friteries-bruxelles-v2';
+const CACHE_NAME = 'friteries-bruxelles-v3';
 const APP_SHELL = [
   './',
   './index.html',
@@ -11,7 +11,9 @@ const APP_SHELL = [
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
+  event.waitUntil(caches.open(CACHE_NAME).then(
+    cache => cache.addAll(APP_SHELL.map(url => new Request(url, { cache: 'reload' })))
+  ));
   self.skipWaiting();
 });
 
@@ -43,12 +45,20 @@ self.addEventListener('fetch', event => {
   }
 
   if (isLocal) {
+    // Stale-while-revalidate : réponse immédiate depuis le cache, puis rafraîchissement
+    // en arrière-plan. En cache-first pur, un fichier mis à jour n'atteignait jamais
+    // une application déjà installée.
     event.respondWith(
-      caches.match(request).then(cached => cached || fetch(request).then(response => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
-        return response;
-      }))
+      caches.match(request).then(cached => {
+        const fresh = fetch(request).then(response => {
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+          }
+          return response;
+        }).catch(() => cached);
+        return cached || fresh;
+      })
     );
   }
 });
