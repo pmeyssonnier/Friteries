@@ -104,6 +104,10 @@ Un même établissement est parfois cartographié deux fois (un point **et** le 
 bâtiment). Les objets de même nom situés à moins de 60 m sont fusionnés ; les friteries
 sans nom en sont exclues, pour ne pas confondre deux baraques voisines et anonymes.
 
+La fusion **combine les champs** au lieu de garder un seul des deux objets : selon les
+cartographes, l'adresse, les horaires ou le téléphone ne sont portés que par le point ou
+que par le bâtiment. Ne garder que le premier rencontré perdrait l'information de l'autre.
+
 ## Limite importante
 
 L'application ne prétend pas disposer d'un registre officiel exhaustif des friteries : elle affiche les établissements correspondant aux tags OpenStreetMap recherchés. Une friterie absente ou mal renseignée dans OSM peut ne pas apparaître.

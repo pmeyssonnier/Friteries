@@ -265,15 +265,31 @@ function distanceMeters(a, b) {
   return 6371000 * Math.hypot(dLat, x);
 }
 
+/* Complète les champs vides du premier objet avec ceux de son jumeau : selon les
+ * cartographes, l'adresse n'est portée que par le point ou que par le bâtiment.
+ * Garder aveuglément le premier des deux perdrait l'information de l'autre. */
+function mergePlace(base, extra) {
+  return {
+    ...base,
+    address: base.address !== UNKNOWN_ADDRESS ? base.address : extra.address,
+    openingHours: base.openingHours || extra.openingHours,
+    phone: base.phone || extra.phone,
+    website: base.website || extra.website,
+    cuisine: base.cuisine || extra.cuisine,
+    takeaway: base.takeaway || extra.takeaway
+  };
+}
+
 /* Fusionne les objets OSM qui décrivent visiblement le même établissement.
  * Les friteries sans nom sont exclues : deux baraques voisines et anonymes
  * ne doivent pas être confondues. */
 function mergeDuplicates(list) {
   const kept = [];
   for (const place of list) {
-    const isDuplicate = place.name !== UNNAMED && kept.some(other =>
+    const twin = place.name === UNNAMED ? -1 : kept.findIndex(other =>
       other.name === place.name && distanceMeters(other, place) < DUPLICATE_RADIUS_M);
-    if (!isDuplicate) kept.push(place);
+    if (twin === -1) kept.push(place);
+    else kept[twin] = mergePlace(kept[twin], place);
   }
   return kept;
 }
