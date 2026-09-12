@@ -28,11 +28,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Prérequis (une seule fois) : Settings → Pages → Source = « GitHub Actions ».
+      # Le GITHUB_TOKEN du workflow n'a pas le droit de créer le site Pages lui-même,
+      # d'où cette activation manuelle unique.
       - name: Configure Pages
         uses: actions/configure-pages@v5
-        with:
-          # Active GitHub Pages (source « GitHub Actions ») si ce n'est pas déjà fait
-          enablement: true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

@@ -34,14 +34,23 @@ http://localhost:8080
 
 ## Déploiement sur GitHub Pages
 
-Le déploiement est **automatique** : le workflow [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml)
+### Étape manuelle à faire une seule fois
+
+GitHub n'autorise pas un workflow à créer lui-même le site Pages. Il faut donc l'activer
+une fois à la main :
+
+1. Ouvrir **Settings → Pages** du dépôt.
+2. Dans **Build and deployment → Source**, choisir **GitHub Actions**.
+
+### Ensuite, c'est automatique
+
+Le workflow [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml)
 publie la racine du dépôt sur GitHub Pages à chaque push.
 
-Si c'est le tout premier déploiement, vérifier une fois dans **Settings → Pages** que la
-source est bien **GitHub Actions** (le workflow tente de l'activer automatiquement), puis
-suivre l'exécution dans l'onglet **Actions**.
+Pour publier immédiatement après l'activation, relancer le workflow depuis l'onglet
+**Actions → Deploy PWA to GitHub Pages → Run workflow**.
 
-L'URL publiée est ensuite :
+L'URL publiée est :
 
 ```text
 https://pmeyssonnier.github.io/Friteries/
