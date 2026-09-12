@@ -78,6 +78,25 @@ fichiers statiques (dont le service worker et le manifeste) soient servis tels q
 - Région de Bruxelles-Capitale : relation OpenStreetMap `54094`.
 - Google Maps est ouvert via une URL standard ; aucune clé API Google n'est nécessaire.
 
+### Critère de sélection
+
+Un établissement est retenu s'il remplit **l'une** de ces conditions (`buildOverpassQuery`
+dans `app.js`) :
+
+| Branche | Ce qu'elle attrape |
+|---|---|
+| `cuisine` ~ `frit\|friet\|fries` | `friture`, `frituur`, `friterie`, `frites`, `fries`, y compris les valeurs multiples type `fries;burger` |
+| `amenity` présent + nom évocateur | une friterie taggée `cafe`, `bar`… et pas seulement `fast_food` |
+| `shop` présent + nom évocateur | une friterie cartographiée comme commerce plutôt que comme `amenity` |
+| `amenity=fast_food` + `cuisine=belgian` | la friterie dont ni le nom ni la cuisine ne mentionnent la frite |
+
+`frit` couvre frite, frites, friture, friterie et frituur ; `friet` couvre frietjes et
+frietkot. Les motifs ignorent la casse.
+
+Un même établissement est parfois cartographié deux fois (un point **et** le contour du
+bâtiment). Les objets de même nom situés à moins de 60 m sont fusionnés ; les friteries
+sans nom en sont exclues, pour ne pas confondre deux baraques voisines et anonymes.
+
 ## Limite importante
 
 L'application ne prétend pas disposer d'un registre officiel exhaustif des friteries : elle affiche les établissements correspondant aux tags OpenStreetMap recherchés. Une friterie absente ou mal renseignée dans OSM peut ne pas apparaître.

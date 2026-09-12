@@ -9,6 +9,16 @@ const BRUSSELS_CENTER = [50.8466, 4.3528];
 const DEFAULT_ZOOM = 12;
 const LABEL_MIN_ZOOM = 14;
 const LABEL_MAX_LABELS = 40;
+const UNNAMED = 'Friterie sans nom';
+
+/* « frit » couvre frite, frites, friture, friterie et frituur ; « friet » couvre
+ * frietjes et frietkot. Les motifs sont appliqués sans tenir compte de la casse. */
+const CUISINE_PATTERN = '(frit|friet|fries)';
+const NAME_PATTERN = '(frit|friet|fries|Maison Antoine)';
+
+/* Un même établissement est parfois cartographié à la fois comme point et comme
+ * contour de bâtiment : deux objets OSM distincts, donc deux marqueurs. */
+const DUPLICATE_RADIUS_M = 60;
 
 const communes = [
   { id: 'all', label: 'Toute la Région de Bruxelles-Capitale', relationId: 54094 },
@@ -95,11 +105,13 @@ function buildAreaSelector(commune) {
 }
 
 function buildOverpassQuery(commune) {
-  return `[out:json][timeout:35];
+  return `[out:json][timeout:60];
 ${buildAreaSelector(commune)}
 (
-  nwr(area.searchArea)["amenity"~"^(fast_food|restaurant)$"]["cuisine"~"(fries|friture|friterie|frituur)",i];
-  nwr(area.searchArea)["amenity"~"^(fast_food|restaurant)$"]["name"~"(frit|friet|friterie|frituur|fries|Maison Antoine)",i];
+  nwr(area.searchArea)["cuisine"~"${CUISINE_PATTERN}",i];
+  nwr(area.searchArea)["amenity"]["name"~"${NAME_PATTERN}",i];
+  nwr(area.searchArea)["shop"]["name"~"${NAME_PATTERN}",i];
+  nwr(area.searchArea)["amenity"="fast_food"]["cuisine"~"belgian",i];
 );
 out center;`;
 }
@@ -144,7 +156,7 @@ function normalizeElement(element) {
   const coords = elementCoordinates(element);
   if (!coords) return null;
   const tags = element.tags || {};
-  const name = tags.name || tags['name:fr'] || tags['name:nl'] || tags.operator || tags.brand || 'Friterie sans nom';
+  const name = tags.name || tags['name:fr'] || tags['name:nl'] || tags.operator || tags.brand || UNNAMED;
   return {
     id: `${element.type}-${element.id}`,
     osmId: element.id,
@@ -160,6 +172,28 @@ function normalizeElement(element) {
     takeaway: tags.takeaway || '',
     tags
   };
+}
+
+function distanceMeters(a, b) {
+  const toRad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * toRad;
+  const dLon = (b.lon - a.lon) * toRad;
+  const meanLat = ((a.lat + b.lat) / 2) * toRad;
+  const x = dLon * Math.cos(meanLat);
+  return 6371000 * Math.hypot(dLat, x);
+}
+
+/* Fusionne les objets OSM qui décrivent visiblement le même établissement.
+ * Les friteries sans nom sont exclues : deux baraques voisines et anonymes
+ * ne doivent pas être confondues. */
+function mergeDuplicates(list) {
+  const kept = [];
+  for (const place of list) {
+    const isDuplicate = place.name !== UNNAMED && kept.some(other =>
+      other.name === place.name && distanceMeters(other, place) < DUPLICATE_RADIUS_M);
+    if (!isDuplicate) kept.push(place);
+  }
+  return kept;
 }
 
 function googleMapsUrl(place) {
@@ -307,7 +341,7 @@ async function loadFriteries({ fit = true } = {}) {
       const place = normalizeElement(element);
       if (place) dedupe.set(place.id, place);
     }
-    places = [...dedupe.values()];
+    places = mergeDuplicates([...dedupe.values()]);
     applySearch();
     if (fit) fitResults();
 
