@@ -208,13 +208,41 @@ function osmUrl(place) {
   return `https://www.openstreetmap.org/${place.osmType}/${place.osmId}`;
 }
 
+const TAKEAWAY_LABELS = {
+  only: 'Vente à emporter uniquement',
+  yes: 'Vente à emporter',
+  no: 'Pas de vente à emporter'
+};
+
+function listFormat(value) {
+  return value.split(';').map(part => part.trim()).filter(Boolean).join(' · ');
+}
+
+/* Chaque ligne n'est rendue que si le tag correspondant existe dans OSM :
+ * une fiche ne doit pas se remplir de « non renseigné ». */
+function detailRows(place) {
+  const rows = [];
+  if (place.openingHours) rows.push(['🕒', escapeHtml(place.openingHours)]);
+  if (place.cuisine) rows.push(['🍽️', escapeHtml(listFormat(place.cuisine))]);
+  if (place.takeaway) {
+    rows.push(['🥡', escapeHtml(TAKEAWAY_LABELS[place.takeaway] || listFormat(place.takeaway))]);
+  }
+  if (place.phone) {
+    const href = place.phone.replace(/[^+\d]/g, '');
+    rows.push(['☎', `<a href="tel:${escapeHtml(href)}">${escapeHtml(place.phone)}</a>`]);
+  }
+  if (place.website) {
+    rows.push(['🌐', `<a href="${escapeHtml(place.website)}" target="_blank" rel="noopener noreferrer">Site web ↗</a>`]);
+  }
+  return rows.map(([icon, html]) => `<p><span class="popup-icon">${icon}</span>${html}</p>`).join('');
+}
+
 function popupHtml(place) {
-  const phone = place.phone ? `<p>☎ ${escapeHtml(place.phone)}</p>` : '';
-  const hours = place.openingHours ? `<p>🕒 ${escapeHtml(place.openingHours)}</p>` : '';
+  const details = detailRows(place);
   return `<div class="popup">
     <h3>🍟 ${escapeHtml(place.name)}</h3>
-    <p>${escapeHtml(place.address)}</p>
-    ${hours}${phone}
+    <p class="popup-address">${escapeHtml(place.address)}</p>
+    ${details || '<p class="popup-empty">Aucun autre détail renseigné dans OpenStreetMap.</p>'}
     <div class="popup-actions">
       <a class="primary" href="${googleMapsUrl(place)}" target="_blank" rel="noopener noreferrer">Google Maps ↗</a>
       <a href="${googleDirectionsUrl(place)}" target="_blank" rel="noopener noreferrer">Itinéraire</a>
@@ -243,10 +271,10 @@ function updateMarkerLabels() {
 function renderMapMarkers() {
   markerLayer.clearLayers();
   for (const place of visiblePlaces) {
-    const marker = L.marker([place.lat, place.lon], { icon: markerIcon(place), title: `${place.name} — ouvrir dans Google Maps` });
+    const marker = L.marker([place.lat, place.lon], { icon: markerIcon(place), title: `${place.name} — voir la fiche` });
     marker.bindTooltip(place.name, { direction: 'top', offset: [0, -24] });
     marker.on('click', () => {
-      window.open(googleMapsUrl(place), '_blank', 'noopener,noreferrer');
+      detailPopup.setLatLng([place.lat, place.lon]).setContent(popupHtml(place)).openOn(map);
     });
     marker.placeId = place.id;
     markerLayer.addLayer(marker);

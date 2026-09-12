@@ -13,8 +13,11 @@ PWA JavaScript qui affiche sur une carte les friteries renseignées dans OpenStr
 - Le **nom de chaque friterie est affiché sous son marqueur** sur la carte. Les étiquettes
   sont masquées quand la carte est trop dense (plus de 40 résultats sous le zoom 14) et
   réapparaissent en zoomant ou en filtrant par commune.
-- Un clic directement sur un marqueur ouvre **Google Maps**.
-- La liste latérale permet aussi d'afficher une fiche, puis **Google Maps** ou **Itinéraire**.
+- Un clic sur un marqueur ouvre la **fiche complète** de la friterie : adresse, horaires,
+  type de cuisine, vente à emporter, téléphone cliquable, site web, puis **Google Maps**,
+  **Itinéraire** et **OSM**. Seules les informations réellement présentes dans
+  OpenStreetMap sont affichées.
+- La liste latérale ouvre la même fiche.
 - Géolocalisation facultative de l'utilisateur.
 - PWA installable sur Android, Windows, macOS et certains navigateurs desktop.
 - Interface responsive téléphone / tablette / ordinateur.
