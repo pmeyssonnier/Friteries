@@ -18,6 +18,7 @@ const UNKNOWN_ADDRESS = 'Adresse non renseignée dans OpenStreetMap';
  * en masse et impose au plus une requête par seconde. */
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/reverse';
 const NOMINATIM_MIN_INTERVAL_MS = 1100;
+const ADDRESS_SEARCH_RADIUS_M = 30;
 
 /* « frit » couvre frite, frites, friture, friterie et frituur ; « friet » couvre
  * frietjes et frietkot. Les motifs sont appliqués sans tenir compte de la casse. */
@@ -181,7 +182,39 @@ function formatNominatimAddress(data) {
   return [street, city].filter(Boolean).join(', ') || (data && data.display_name) || '';
 }
 
+/* L'adresse est le plus souvent portée par le bâtiment qui abrite le commerce.
+ * La chercher dans OSM donne une adresse complète, numéro compris, là où le
+ * géocodage inverse ne renvoie souvent que la voirie. */
+function buildAddressQuery(place) {
+  return `[out:json][timeout:25];
+nwr(around:${ADDRESS_SEARCH_RADIUS_M},${place.lat},${place.lon})["addr:housenumber"]["addr:street"];
+out center 30;`;
+}
+
+async function fetchNearestOsmAddress(place) {
+  const data = await fetchOverpass(buildAddressQuery(place));
+  let nearest = null;
+  let shortest = Infinity;
+  for (const element of data.elements || []) {
+    const coords = elementCoordinates(element);
+    if (!coords) continue;
+    const distance = distanceMeters(place, coords);
+    if (distance < shortest) {
+      shortest = distance;
+      nearest = element.tags;
+    }
+  }
+  return nearest ? formatAddress(nearest) : '';
+}
+
 async function fetchApproximateAddress(place) {
+  const fromOsm = await fetchNearestOsmAddress(place).catch(error => {
+    console.error(error);
+    return '';
+  });
+  if (fromOsm && fromOsm !== UNKNOWN_ADDRESS) return fromOsm;
+
+  // Repli : aucun objet adressé à proximité dans OSM.
   await waitForNominatimSlot();
   const url = `${NOMINATIM_URL}?format=jsonv2&addressdetails=1&zoom=18&accept-language=fr`
     + `&lat=${encodeURIComponent(place.lat)}&lon=${encodeURIComponent(place.lon)}`;
