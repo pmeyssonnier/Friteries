@@ -159,6 +159,30 @@ select:focus, input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rg
   box-shadow: 0 4px 12px rgba(16,24,40,.28);
 }
 .fries-pin > span { transform: rotate(45deg); font-size: 17px; }
+
+/* Nom de la friterie affiché sous le marqueur (lisible au doigt, sans survol). */
+.fries-label {
+  display: none;
+  position: absolute;
+  top: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 148px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 7px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, .93);
+  color: #111827;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+  box-shadow: 0 1px 5px rgba(16, 24, 40, .22);
+  pointer-events: none;
+}
+#map.show-labels .fries-label { display: block; }
 .user-marker { width: 18px; height: 18px; border-radius: 50%; background: #1570ef; border: 3px solid white; box-shadow: 0 0 0 4px rgba(21,112,239,.18); }
 
 .leaflet-popup-content-wrapper { border-radius: 14px; }

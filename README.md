@@ -10,6 +10,9 @@ PWA JavaScript qui affiche sur une carte les friteries renseignées dans OpenStr
 - Recherche des friteries via Overpass API au chargement.
 - Filtre par les 19 communes bruxelloises.
 - Recherche par nom ou adresse.
+- Le **nom de chaque friterie est affiché sous son marqueur** sur la carte. Les étiquettes
+  sont masquées quand la carte est trop dense (plus de 40 résultats sous le zoom 14) et
+  réapparaissent en zoomant ou en filtrant par commune.
 - Un clic directement sur un marqueur ouvre **Google Maps**.
 - La liste latérale permet aussi d'afficher une fiche, puis **Google Maps** ou **Itinéraire**.
 - Géolocalisation facultative de l'utilisateur.

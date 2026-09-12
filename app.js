@@ -7,6 +7,8 @@
 const BRUSSELS_RELATION_ID = 54094;
 const BRUSSELS_CENTER = [50.8466, 4.3528];
 const DEFAULT_ZOOM = 12;
+const LABEL_MIN_ZOOM = 14;
+const LABEL_MAX_LABELS = 40;
 
 const communes = [
   { id: 'all', label: 'Toute la Région de Bruxelles-Capitale', relationId: 54094 },
@@ -43,6 +45,7 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 const markerLayer = L.layerGroup().addTo(map);
+map.on('zoomend', updateMarkerLabels);
 const detailPopup = L.popup({ maxWidth: 320 });
 let userMarker = null;
 let places = [];
@@ -141,7 +144,7 @@ function normalizeElement(element) {
   const coords = elementCoordinates(element);
   if (!coords) return null;
   const tags = element.tags || {};
-  const name = tags.name || tags['name:fr'] || tags['name:nl'] || 'Friterie sans nom';
+  const name = tags.name || tags['name:fr'] || tags['name:nl'] || tags.operator || tags.brand || 'Friterie sans nom';
   return {
     id: `${element.type}-${element.id}`,
     osmId: element.id,
@@ -186,20 +189,27 @@ function popupHtml(place) {
   </div>`;
 }
 
-function markerIcon() {
+function markerIcon(place) {
   return L.divIcon({
     className: 'fries-marker',
-    html: '<div class="fries-pin"><span>🍟</span></div>',
+    html: `<div class="fries-pin"><span>🍟</span></div><div class="fries-label">${escapeHtml(place.name)}</div>`,
     iconSize: [34, 34],
     iconAnchor: [17, 31],
     popupAnchor: [0, -28]
   });
 }
 
+/* Les étiquettes sont masquées quand la carte est trop dense pour rester lisible. */
+function updateMarkerLabels() {
+  const readable = map.getZoom() >= LABEL_MIN_ZOOM || visiblePlaces.length <= LABEL_MAX_LABELS;
+  map.getContainer().classList.toggle('show-labels', readable);
+  return readable;
+}
+
 function renderMapMarkers() {
   markerLayer.clearLayers();
   for (const place of visiblePlaces) {
-    const marker = L.marker([place.lat, place.lon], { icon: markerIcon(), title: `${place.name} — ouvrir dans Google Maps` });
+    const marker = L.marker([place.lat, place.lon], { icon: markerIcon(place), title: `${place.name} — ouvrir dans Google Maps` });
     marker.bindTooltip(place.name, { direction: 'top', offset: [0, -24] });
     marker.on('click', () => {
       window.open(googleMapsUrl(place), '_blank', 'noopener,noreferrer');
@@ -207,6 +217,7 @@ function renderMapMarkers() {
     marker.placeId = place.id;
     markerLayer.addLayer(marker);
   }
+  updateMarkerLabels();
 }
 
 function renderResults() {
@@ -300,7 +311,9 @@ async function loadFriteries({ fit = true } = {}) {
     applySearch();
     if (fit) fitResults();
 
-    setStatus(`${places.length} friterie${places.length > 1 ? 's' : ''} trouvée${places.length > 1 ? 's' : ''}.`, 'success', true);
+    const plural = places.length > 1 ? 's' : '';
+    const hint = updateMarkerLabels() ? '' : ' Zoomez pour afficher les noms sur la carte.';
+    setStatus(`${places.length} friterie${plural} trouvée${plural}.${hint}`, 'success', true);
   } catch (error) {
     if (error.name === 'AbortError') return;
     console.error(error);
