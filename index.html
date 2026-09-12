@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <meta name="description" content="Carte interactive des friteries des 19 communes de la Région de Bruxelles-Capitale." />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="stylesheet" href="./styles.css" />
+  <title>Friteries Bruxelles</title>
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div>
+        <h1>🍟 Friteries Bruxelles</h1>
+        <p>Les friteries des 19 communes sur une seule carte.</p>
+      </div>
+      <button id="installBtn" class="button secondary hidden" type="button">Installer</button>
+    </header>
+
+    <section class="controls" aria-label="Filtres">
+      <label>
+        <span>Commune</span>
+        <select id="communeSelect"></select>
+      </label>
+      <label class="search-field">
+        <span>Rechercher</span>
+        <input id="searchInput" type="search" placeholder="Nom d’une friterie…" autocomplete="off" />
+      </label>
+      <button id="reloadBtn" class="button" type="button">Actualiser</button>
+      <button id="locateBtn" class="button secondary" type="button">Me localiser</button>
+    </section>
+
+    <main class="layout">
+      <section class="map-wrap" aria-label="Carte des friteries">
+        <div id="map"></div>
+        <div id="status" class="status" role="status" aria-live="polite">Chargement…</div>
+      </section>
+
+      <aside class="sidebar">
+        <div class="sidebar-head">
+          <div>
+            <strong id="countLabel">0 friterie</strong>
+            <small id="scopeLabel">Région de Bruxelles-Capitale</small>
+          </div>
+          <button id="fitBtn" class="icon-button" type="button" title="Afficher tous les résultats" aria-label="Afficher tous les résultats">⤢</button>
+        </div>
+        <div id="results" class="results" aria-live="polite"></div>
+        <div class="data-note">
+          Données cartographiques © contributeurs OpenStreetMap. La liste dépend des établissements renseignés dans OpenStreetMap.
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <template id="resultTemplate">
+    <article class="result-card" tabindex="0">
+      <div class="result-main">
+        <div class="result-icon">🍟</div>
+        <div>
+          <h2 class="result-name"></h2>
+          <p class="result-address"></p>
+          <p class="result-meta"></p>
+        </div>
+      </div>
+      <a class="maps-link" target="_blank" rel="noopener noreferrer">Google Maps ↗</a>
+    </article>
+  </template>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="./app.js" defer></script>
+</body>
+</html>
